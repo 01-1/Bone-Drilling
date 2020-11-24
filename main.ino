@@ -1,9 +1,7 @@
-// based: https://www.hackster.io/Elite_Worm/build-a-laser-tachometer-c5a320
-#include <SPI.h>
-#include <Wire.h>
+// Partly uses: https://www.hackster.io/Elite_Worm/build-a-laser-tachometer-c5a320
 
-const byte sensor = 2;
-
+const byte RPM_SENSOR_PIN = 2;
+const byte DRILL_PIN = 3;
 const double pulse_threshold = 0.99;
 
 volatile unsigned long t_pulse_started_volatile = 0;
@@ -24,8 +22,12 @@ volatile bool newpulse = 0;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(sensor, INPUT);
-  attachInterrupt(digitalPinToInterrupt(sensor), ISR_sensor, RISING); // or falling
+  
+  pinMode(DRILL_PIN, OUTPUT);
+  analogWrite(DRILL_PIN, 255);
+  
+  pinMode(RPM_SENSOR_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(RPM_SENSOR_PIN), ISR_sensor, RISING); // or falling
 }
 
 void loop() {
@@ -44,7 +46,7 @@ void loop() {
     Serial.print(t_pulse_duration); // print the data
     newpulse = 0;
     if (static_cast<double>(t_pulse_duration_l) / t_pulse_duration < pulse_threshold) {
-      // do something
+      analogWrite(DRILL_PIN, 0);
     }
     
     
