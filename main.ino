@@ -14,9 +14,6 @@ unsigned long t_pulse_duration_l = 2000000;
 Easier to calculate, and arithmetic mean of periods (which would be the harmonic mean of rpm) 
 is more correct than having arithmetic mean of rpm (which is the harmonic mean of the periods.) */
 
-byte n_max = 0;
-// byte n = 0;
-
 volatile bool timeout = 1;
 volatile bool newpulse = 0;
 
@@ -43,23 +40,11 @@ void loop() {
   };
 
   if (timeout == 0 && newpulse) {
-    Serial.print(t_pulse_duration); // print the data
+    Serial.print(t_pulse_duration); // for data collection stage only, may affect timing significantly
     newpulse = 0;
     if (static_cast<double>(t_pulse_duration_l) / t_pulse_duration < pulse_threshold) {
       analogWrite(DRILL_PIN, 0);
     }
-    
-    
-    // n_max = constrain(map(60000000 / t_pulse_duration, 60, 100000, 0, 100), 0, 100);
-    // n_max is the amount of numbers taken into account in the average. Seems kinda arbitrary though
-    
-    // n++;
-    
-    /*
-    if (n > n_max) {
-      // do stuff
-    }*/
-    
     
     
   }
