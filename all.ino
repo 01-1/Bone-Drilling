@@ -1,20 +1,32 @@
 #include "Adafruit_MLX90614.h"
+#include <cstdint>
 
-const byte FORCE_SENSOR_PIN = 2;
-const byte DRILL_PIN = 3;
-const byte LINEAR_ACTUATOR_PIN = 4; // check analog and digital pins
+using byte8 = std::int8_t;
+using int32 = std::int32_t;
 
-const double RESISTANCE_CHANGE_THRESHOLD = 0.99;
+enum class stage {
+  before_drilling,
+  first_cortical,
+  trabecular,
+  second_cortical
+};
 
-short raw_force_voltage;
+stage current_stage = stage::before_drilling;
 
+// Pin constants
+namespace Pin {
+  const byte8 DRILL = 3;
+  const byte8 LINEAR_ACTUATOR = 4; // check analog and digital pins
+}
 
-const double R1=500, R2, R3=500, R4=500;
-const double VD = R4/(R3+R4)*3.3;
-const double force_voltage;
-const double lastR2;
+// Constants
+namespace Threshold {
+  const float START_VOLTAGE = 0.1;
+  const double STOP_FACTOR = 0.5;
+}
 
-double tempC;
+// Variables
+
 
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
@@ -22,30 +34,33 @@ void setup() {
   Serial.begin(9600);
   mlx.begin();
   
-  pinMode(DRILL_PIN, OUTPUT);
-  pinMode(LINEAR_ACTUATOR_PIN, OUTPUT);
-  analogWrite(DRILL_PIN, 255);
-  analogWrite(LINEAR_ACTUATOR_PIN, 255);
-  
-  pinMode(FORCE_SENSOR_PIN, INPUT);
+  pinMode(Pin::DRILL, OUTPUT);
+  pinMode(Pin::LINEAR_ACTUATOR, OUTPUT);
+  analogWrite(Pin::DRILL, 255);
+  analogWrite(Pin::LINEAR_ACTUATOR, 255);
   
 }
 
 void stopDrill() {
-  analogWrite(DRILL_PIN, 0);
-  analogWrite(LINEAR_ACTUATOR_PIN, 0);
+  analogWrite(Pin::DRILL, 0);
+  analogWrite(Pin::LINEAR_ACTUATOR, 0);
 }
 
 void loop() {
-  //short last = raw_force_voltage;
-  //raw_force_voltage = analogRead(FORCE_SENSOR_PIN);
-  
-  force_voltage = 3.3/3.3;
-  
-  R2 = (R2*(VD+force_voltage))/(3.3-(VD+force_voltage));
-  
-  if (R2 / lastR2 < RESISTANCE_CHANGE_THRESHOLD) { // stop on increase in resistance: decrease resistance = increase in compression
-    stopDrill();
+  float force_voltage = 0; // modify
+  switch (current_stage) {
+    case stage::before_drilling:
+      if (force_voltage > starting_threshold) {
+        stage = stage::first_cortical;
+      }
+      break;
+    case stage::first_cortical:
+      // setup average
+      break;
+    case stage::trabecular:
+      break;
+    case stage::second_cortical:
+      break;
   }
   
   tempC = mlx.readObjectTempC();
@@ -53,9 +68,5 @@ void loop() {
   if (tempC > 40) {
     stopDrill();
   }
-  
-  Serial.println(tempC);
-  
-  delay(50); // 1/20 of a second. this is arbitrary
   
 }
