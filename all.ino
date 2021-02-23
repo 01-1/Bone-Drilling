@@ -1,6 +1,13 @@
+#ifdef DEBUG
+#include "Arduino.h"
+#include "Adafruit_MLX90614.h"
+#include "HX711.h"
+#include "L298N.h"
+#else
 #include <Adafruit_MLX90614.h>
 #include <HX711.h>
 #include <L298N.h>
+#endif
 
 enum class Stage {
     BEFORE_DRILLING,
@@ -56,7 +63,7 @@ unsigned long timer_end; // 70 minutes overflow
 void setup() {
     Serial.begin(9600);
     mlx.begin();
-    
+
     // TODO: Add serial scenario input
 
     pinMode(Pin::LINEAR_ACTUATOR_EN, OUTPUT);
@@ -70,7 +77,7 @@ void setup() {
     loadcell.set_scale();
     loadcell.tare();
     
-    linear_actuator.setSpeed(CORTICAL_SPEED);
+    linear_actuator.setSpeed(INITIAL_SPEED);
 }
 
 void stopDrill() {
@@ -99,6 +106,7 @@ void loop() {
         case Stage::INITIAL_FIRST_CORTICAL:
             if (micros() > timer_end) {
                 stage = Stage::MAIN_FIRST_CORTICAL;
+                linear_actuator.setSpeed(CORTICAL_SPEED);
             }
             break;
         case Stage::MAIN_FIRST_CORTICAL:
