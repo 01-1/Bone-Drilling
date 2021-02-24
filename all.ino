@@ -38,7 +38,7 @@ const double ENTER_CORTICAL_THRESHOLD_FACTOR = 2.0;
 // 10 mm/s full speed
 const unsigned short INITIAL_SPEED = 13; // 0.5 mm/s
 const unsigned short CORTICAL_SPEED = 26; // 1 mm/s
-const unsigned short TRABECULAR_SPEED = 69; // 0.5 mm/s
+const unsigned short TRABECULAR_SPEED = 13; // 0.5 mm/s
 
 // Variables
 double cortical_total = 0;
