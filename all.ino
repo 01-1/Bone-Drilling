@@ -1,13 +1,6 @@
-#ifdef DEBUG
-#include "Arduino.h"
-#include "Adafruit_MLX90614.h"
-#include "HX711.h"
-#include "L298N.h"
-#else
 #include <Adafruit_MLX90614.h>
 #include <HX711.h>
 #include <L298N.h>
-#endif
 
 enum class Stage {
     BEFORE_DRILLING,
@@ -24,7 +17,7 @@ enum class Scenario {
 };
 
 Stage stage = Stage::BEFORE_DRILLING;
-Scenario scenario = Scenario::FULL;
+Scenario scenario;
 
 // Pin constants
 namespace Pin {
@@ -60,11 +53,30 @@ L298N linear_actuator(Pin::LINEAR_ACTUATOR_EN, Pin::LINEAR_ACTUATOR_IN1, Pin::LI
 
 unsigned long timer_end; // 70 minutes overflow
 
+void choose_scenario() {
+    Serial.println("What scenario would you like to use?");
+    Serial.println("Press 't' to stop at the trabecular bone and 'f' to stop at the end of the whole bone.");
+
+    switch(Serial.read()) {
+        case 't':
+            scenario = Scenario::STOP_TRABECULAR;
+            break;
+        case 'f':
+            scenario = Scenario::FULL;
+            break;
+        default:
+            Serial.println("Disallowed scenario. Defaulting to full.");
+            scenario = Scenario::FULL;
+            break;
+    }
+}
+
 void setup() {
     Serial.begin(9600);
-    mlx.begin();
 
-    // TODO: Add serial scenario input
+    choose_scenario();
+
+    mlx.begin();
 
     pinMode(Pin::LINEAR_ACTUATOR_EN, OUTPUT);
     pinMode(Pin::LINEAR_ACTUATOR_IN1, OUTPUT);
@@ -76,12 +88,12 @@ void setup() {
     loadcell.begin(Pin::LOADCELL_DOUT_PIN, Pin::LOADCELL_SCK_PIN);
     loadcell.set_scale();
     loadcell.tare();
-    
+
     linear_actuator.setSpeed(INITIAL_SPEED);
+
 }
 
 void stopDrill() {
-    // linear_actuator.stop();
     linear_actuator.backward();
     stage = Stage::IDLE;
 }
