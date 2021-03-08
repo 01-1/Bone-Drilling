@@ -22,11 +22,11 @@ Scenario scenario;
 // Pin constants
 namespace Pin {
     using p = const uint8_t;
-    p LOADCELL_DOUT_PIN = 1;
-    p LOADCELL_SCK_PIN = 2;
-    p LINEAR_ACTUATOR_EN = 3;
-    p LINEAR_ACTUATOR_IN1 = 4;
-    p LINEAR_ACTUATOR_IN2 = 5;
+    p LOADCELL_DOUT_PIN = 0;
+    p LOADCELL_SCK_PIN = 1;
+    p LINEAR_ACTUATOR_EN = 6;
+    p LINEAR_ACTUATOR_IN1 = 7;
+    p LINEAR_ACTUATOR_IN2 = 8;
 }
 
 // Constants
@@ -36,9 +36,9 @@ const double ENTER_TRABECULAR_THRESHOLD_FACTOR = 0.5;
 const double ENTER_CORTICAL_THRESHOLD_FACTOR = 2.0;
 
 // 10 mm/s full speed
-const unsigned short INITIAL_SPEED = 13; // 0.5 mm/s
-const unsigned short CORTICAL_SPEED = 26; // 1 mm/s
-const unsigned short TRABECULAR_SPEED = 13; // 0.5 mm/s
+const unsigned short INITIAL_SPEED = 96; // 0.5 mm/s
+const unsigned short CORTICAL_SPEED = 96; // 1 mm/s
+const unsigned short TRABECULAR_SPEED = 96; // 0.5 mm/s
 
 // Variables
 double cortical_total = 0;
@@ -56,7 +56,7 @@ unsigned long timer_end; // 70 minutes overflow
 void choose_scenario() {
     Serial.println("What scenario would you like to use?");
     Serial.println("Press 't' to stop at the trabecular bone and 'f' to stop at the end of the whole bone.");
-
+    // wait till data available
     switch(Serial.read()) {
         case 't':
             scenario = Scenario::STOP_TRABECULAR;
@@ -89,12 +89,17 @@ void setup() {
     loadcell.set_scale();
     loadcell.tare();
 
-    linear_actuator.setSpeed(INITIAL_SPEED);
+    setSignedSpeed(INITIAL_SPEED);
 
 }
 
+void setSignedSpeed(int speed) {
+  linear_actuator.setSpeed(abs(speed)); // need to set speed and then run
+  linear_actuator.run(speed >= 0 ? L298N::FORWARD : L298N::BACKWARD);
+}
+
 void stopDrill() {
-    linear_actuator.backward();
+    linear_actuator.run(-255);
     stage = Stage::IDLE;
 }
 
@@ -118,7 +123,7 @@ void loop() {
         case Stage::INITIAL_FIRST_CORTICAL:
             if (micros() > timer_end) {
                 stage = Stage::MAIN_FIRST_CORTICAL;
-                linear_actuator.setSpeed(CORTICAL_SPEED);
+                setSignedSpeed(CORTICAL_SPEED);
             }
             break;
         case Stage::MAIN_FIRST_CORTICAL:
@@ -127,14 +132,14 @@ void loop() {
                     stopDrill();
                 } else {
                     stage = Stage::TRABECULAR;
-                    linear_actuator.setSpeed(TRABECULAR_SPEED);
+                    setSignedSpeed(TRABECULAR_SPEED);
                 }
             }
             break;
         case Stage::TRABECULAR:
             if (update(force_voltage, trabecular_total, trabecular_len, ENTER_CORTICAL_THRESHOLD_FACTOR)) {
                 stage = Stage::SECOND_CORTICAL;
-                linear_actuator.setSpeed(CORTICAL_SPEED);
+                setSignedSpeed(CORTICAL_SPEED);
             }
 
             break;
