@@ -36,9 +36,9 @@ const double ENTER_TRABECULAR_THRESHOLD_FACTOR = 0.5;
 const double ENTER_CORTICAL_THRESHOLD_FACTOR = 2.0;
 
 // 10 mm/s full speed
-const unsigned short INITIAL_SPEED = 96; // 0.5 mm/s
-const unsigned short CORTICAL_SPEED = 96; // 1 mm/s
-const unsigned short TRABECULAR_SPEED = 96; // 0.5 mm/s
+const unsigned short INITIAL_SPEED = 96;
+const unsigned short CORTICAL_SPEED = 96;
+const unsigned short TRABECULAR_SPEED = 96;
 
 // Variables
 double cortical_total = 0;
@@ -56,7 +56,7 @@ unsigned long timer_end; // 70 minutes overflow
 void choose_scenario() {
     Serial.println("What scenario would you like to use?");
     Serial.println("Press 't' to stop at the trabecular bone and 'f' to stop at the end of the whole bone.");
-    // wait till data available
+    while (Serial.available() <= 0) {}
     switch(Serial.read()) {
         case 't':
             scenario = Scenario::STOP_TRABECULAR;
@@ -65,8 +65,9 @@ void choose_scenario() {
             scenario = Scenario::FULL;
             break;
         default:
-            Serial.println("Disallowed scenario. Defaulting to full.");
+            Serial.println("Disallowed scenario.");
             scenario = Scenario::FULL;
+            stage = Stage::IDLE;
             break;
     }
 }
@@ -95,7 +96,7 @@ void setup() {
 
 void setSignedSpeed(int speed) {
   linear_actuator.setSpeed(abs(speed)); // need to set speed and then run
-  linear_actuator.run(speed >= 0 ? L298N::FORWARD : L298N::BACKWARD);
+  linear_actuator.run(speed == 0 ? L298N::STOP : (speed > 0 ? L298N::FORWARD : L298N::BACKWARD));
 }
 
 void stopDrill() {
@@ -117,11 +118,11 @@ void loop() {
         case Stage::BEFORE_DRILLING:
             if (force_voltage > STARTING_VOLTAGE_THRESHOLD) {
                 stage = Stage::INITIAL_FIRST_CORTICAL;
-                timer_end = micros() + 2000000;
+                timer_end = millis() + 2000;
             }
             break;
         case Stage::INITIAL_FIRST_CORTICAL:
-            if (micros() > timer_end) {
+            if (millis() > timer_end) {
                 stage = Stage::MAIN_FIRST_CORTICAL;
                 setSignedSpeed(CORTICAL_SPEED);
             }
@@ -157,5 +158,8 @@ void loop() {
     if (tempC > 40) {
         stopDrill();
     }
-
+    
+    Serial.print(tempC);
+    Serial.print(" ");
+    Serial.println(millis());
 }
