@@ -31,28 +31,31 @@ namespace Pin {
 
 // Constants
 
-const float VOLTAGE_THRESHOLD = 550000.0f;
+const float VOLTAGE_THRESHOLD = 1500000.0f; 
+
+const float ZERO_OFFSET = 380000.0f;
 
 // 10 mm/s = full speed (255)
-const unsigned short INITIAL_SPEED = 96;
-const unsigned short CORTICAL_SPEED = 96;
-const unsigned short TRABECULAR_SPEED = 96;
+const unsigned short ACTUATOR_SPEED = 102; // 102 = 4mm/s
 
-// Objects
+// Objects / Variables
 
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 HX711 loadcell;
 L298N linear_actuator(Pin::LINEAR_ACTUATOR_EN, Pin::LINEAR_ACTUATOR_IN1, Pin::LINEAR_ACTUATOR_IN2);
 
-unsigned long timer_end; // 70 minutes overflow
-
 void choose_scenario() {
-  Serial.println("What scenario would you like to use?");
-  Serial.println("Press 't' or '1' to stop at the trabecular bone and 'f' or '2' to stop at the end of the whole bone.");
+  Serial.println("Choose a scenario:");
+  Serial.println("Single cortical: '1' or 's'");
+  Serial.println("Whole bone: '2' or 'f'");
+  Serial.println("No movement: Anything else");
   while (Serial.available() == 0) {}
-  switch(Serial.read()) {
+  char c = Serial.read();
+  Serial.print("Input received: ");
+  Serial.println(c);
+  switch (c) {
     case '1':
-    case 't':
+    case 's':
       scenario = Scenario::STOP_TRABECULAR;
       break;
     case '2':
@@ -85,7 +88,8 @@ void setup() {
   loadcell.set_scale();
   loadcell.set_gain(128);
   
-  setSignedSpeed(INITIAL_SPEED);
+  if (stage == Stage::AFTER_DRILLING) return; // no scenario inputted
+  setSignedSpeed(ACTUATOR_SPEED);
 
 }
 
@@ -110,9 +114,11 @@ void loop() {
   Serial.print('\t');
   Serial.print(tempC);
   Serial.print('\t');
+  Serial.print((force_voltage - ZERO_OFFSET)/68171.4f);
+  Serial.print('\t');
   Serial.print(force_voltage);
   
-  if (tempC > 40) {
+  if (tempC > 25) {
     stopDrill();
   }
   
@@ -121,8 +127,7 @@ void loop() {
       case Stage::BEFORE_DRILLING:
         if (force_voltage >= VOLTAGE_THRESHOLD) {
           stage = Stage::FIRST_CORTICAL;
-          timer_end = millis() + 500; // get rid of errors
-          Serial.println("\tStage: FIRST_CORTICAL");
+          Serial.print("\tStage: FIRST_CORTICAL");
         }
         break;
       case Stage::FIRST_CORTICAL:
@@ -131,7 +136,6 @@ void loop() {
             stopDrill();
           } else {
             stage = Stage::TRABECULAR;
-            setSignedSpeed(TRABECULAR_SPEED);
             Serial.print("\tStage: TRABECULAR");
           }
         }
@@ -139,7 +143,6 @@ void loop() {
       case Stage::TRABECULAR:
         if (force_voltage >= VOLTAGE_THRESHOLD) {
           stage = Stage::SECOND_CORTICAL;
-          setSignedSpeed(CORTICAL_SPEED);
           Serial.print("\tStage: SECOND_CORTICAL");
         }
         break;
@@ -164,6 +167,11 @@ void loop() {
       case 'q': // quit
         stopDrill();
         break;
+      case 'f': // forward
+        setSignedSpeed(255);
+        break;
+      case '4': // 4 mm/s
+        setSignedSpeed(102);
       default:
         Serial.print(" - Unknown input.");
         break;
