@@ -35,10 +35,14 @@ const float VOLTAGE_THRESHOLD = 1500000.0f;
 
 const float ZERO_OFFSET = 380000.0f;
 
+const float DELTA_THRESHOLD = 400000.0f;
+
 // 10 mm/s = full speed (255)
 const unsigned short ACTUATOR_SPEED = 102; // 102 = 4mm/s
 
 // Objects / Variables
+
+float last = ZERO_OFFSET;
 
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 HX711 loadcell;
@@ -118,7 +122,7 @@ void loop() {
   Serial.print('\t');
   Serial.print(force_voltage);
   
-  if (tempC > 25) {
+  if (tempC > 50) {
     stopDrill();
   }
   
@@ -131,14 +135,20 @@ void loop() {
         }
         break;
       case Stage::FIRST_CORTICAL:
-        if (force_voltage < VOLTAGE_THRESHOLD) {
-          if (scenario == Scenario::STOP_TRABECULAR) {
+        if (scenario == Scenario::STOP_TRABECULAR) {
+          if (force_voltage < VOLTAGE_THRESHOLD || last - force_voltage > DELTA_THRESHOLD) {
             stopDrill();
-          } else {
+            break;
+          }
+        } else {
+          if (force_voltage < VOLTAGE_THRESHOLD) {
             stage = Stage::TRABECULAR;
             Serial.print("\tStage: TRABECULAR");
+            last = ZERO_OFFSET;
+            break;
           }
         }
+        last = force_voltage;
         break;
       case Stage::TRABECULAR:
         if (force_voltage >= VOLTAGE_THRESHOLD) {
@@ -147,9 +157,10 @@ void loop() {
         }
         break;
       case Stage::SECOND_CORTICAL:
-        if (force_voltage < VOLTAGE_THRESHOLD) {
+        if (force_voltage < VOLTAGE_THRESHOLD || last - force_voltage > DELTA_THRESHOLD) {
           stopDrill();
         }
+        last = force_voltage;
         break;
       case Stage::AFTER_DRILLING:
         break;
