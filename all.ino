@@ -122,7 +122,7 @@ void loop() {
   Serial.print('\t');
   Serial.print(force_voltage);
   
-  if (tempC > 50) {
+  if (tempC > 47) {
     stopDrill();
   }
   
@@ -176,6 +176,7 @@ void loop() {
         setSignedSpeed(0);
         break;
       case 'q': // quit
+      case 'r': // reverse
         stopDrill();
         break;
       case 'f': // forward
@@ -183,6 +184,7 @@ void loop() {
         break;
       case '4': // 4 mm/s
         setSignedSpeed(102);
+        break;
       default:
         Serial.print(" - Unknown input.");
         break;
