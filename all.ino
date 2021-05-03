@@ -1,4 +1,4 @@
-#include <Adafruit_MLX90614.h>
+#include <max6675.h>
 #include <HX711.h>
 #include <L298N.h>
 
@@ -27,6 +27,9 @@ namespace Pin {
   p LINEAR_ACTUATOR_EN = 6;
   p LINEAR_ACTUATOR_IN1 = 7;
   p LINEAR_ACTUATOR_IN2 = 8;
+  p THERMOCOUPLE_SCK = 10;
+  p THERMOCOUPLE_CS = 11;
+  p THERMOCOUPLE_SO = 12;
 }
 
 // Constants
@@ -44,9 +47,13 @@ const unsigned short ACTUATOR_SPEED = 102; // 102 = 4mm/s
 
 float last = ZERO_OFFSET;
 
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 HX711 loadcell;
-L298N linear_actuator(Pin::LINEAR_ACTUATOR_EN, Pin::LINEAR_ACTUATOR_IN1, Pin::LINEAR_ACTUATOR_IN2);
+
+L298N linear_actuator(
+  Pin::LINEAR_ACTUATOR_EN, Pin::LINEAR_ACTUATOR_IN1, Pin::LINEAR_ACTUATOR_IN2);
+  
+MAX6675 thermo(
+  Pin::THERMOCOUPLE_SCK,Pin::THERMOCOUPLE_CS,Pin::THERMOCOUPLE_SO);
 
 void choose_scenario() {
   Serial.println("Choose a scenario:");
@@ -78,15 +85,17 @@ void setup() {
   Serial.begin(9600);
 
   choose_scenario();
-
-  mlx.begin();
-
+  
   pinMode(Pin::LINEAR_ACTUATOR_EN, OUTPUT);
   pinMode(Pin::LINEAR_ACTUATOR_IN1, OUTPUT);
   pinMode(Pin::LINEAR_ACTUATOR_IN2, OUTPUT);
 
   pinMode(Pin::LOADCELL_DOUT_PIN, INPUT);
   pinMode(Pin::LOADCELL_SCK_PIN, INPUT);
+  
+  pinMode(Pin::THERMOCOUPLE_SCK, OUTPUT);
+  pinMode(Pin::THERMOCOUPLE_CS, OUTPUT);
+  pinMode(Pin::THERMOCOUPLE_SO, OUTPUT);
 
   loadcell.begin(Pin::LOADCELL_DOUT_PIN, Pin::LOADCELL_SCK_PIN);
   loadcell.set_scale();
@@ -112,7 +121,7 @@ void loop() {
   float force_voltage = loadcell.get_units(1); // modify
   // library for HX711 uses float
   
-  double tempC = mlx.readObjectTempC();
+  double tempC = thermo.readCelsius();
   
   Serial.print(millis());
   Serial.print('\t');
