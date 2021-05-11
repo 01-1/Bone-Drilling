@@ -35,7 +35,7 @@ const float VOLTAGE_THRESHOLD = 1500000.0f;
 
 const float ZERO_OFFSET = 380000.0f;
 
-const float DELTA_THRESHOLD = 400000.0f;
+const float DELTA_THRESHOLD = 69000.0f;
 
 // 10 mm/s = full speed (255)
 const unsigned short ACTUATOR_SPEED = 102; // 102 = 4mm/s
